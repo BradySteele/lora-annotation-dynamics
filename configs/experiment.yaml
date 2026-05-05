@@ -1,0 +1,74 @@
+# =============================================================================
+# Experiment Configuration (reference only)
+# Paper: "Annotation Entropy Predicts Per-Example Learning Dynamics in
+#         LoRA Fine-Tuning" -- ACL SRW 2026, Brady Steele
+# =============================================================================
+#
+# NOTE: This YAML documents the canonical hyperparameters reported in the
+# paper. The actual experimental pipeline is driven by Python constants at
+# the top of the numbered scripts in `scripts/` (see README.md for the
+# figure/table -> script mapping). Edit the scripts for reproduction; this
+# file is kept as a single readable reference.
+# =============================================================================
+
+# --- Models (all six reported in Table 1) ---
+models:
+  encoders:
+    - roberta-base
+    - bert-base-uncased
+    - distilbert-base-uncased
+    - microsoft/deberta-v3-base
+  decoders:
+    - Qwen/Qwen2.5-1.5B
+    - Qwen/Qwen2.5-3B
+
+# --- LoRA (paper Section 3.3) ---
+lora:
+  ranks: [4, 16]            # main matrix; rank sweep uses {1, 2, 4, 8, 16, 32}
+  alpha_multiplier: 2       # alpha = 2 * rank  (8 or 32)
+  dropout: 0.05
+  target_modules:
+    encoder: ["query", "value"]
+    decoder: ["q_proj", "k_proj", "v_proj", "o_proj"]
+  bias: "none"
+
+# --- Datasets ---
+# ChaosNLI (Nie et al., 2020): 100 annotators per example on SNLI + MNLI
+# dev/test subsets. Manual download required from easonnie/ChaosNLI.
+datasets:
+  chaosnli_snli:
+    n_annotators: 100
+    # ~1,514 examples after filtering
+  chaosnli_mnli:
+    n_annotators: 100
+    # ~1,599 examples after filtering
+
+# --- Entropy categorization (paper Section 3, Appendix A) ---
+entropy:
+  thresholds: [0.4, 0.7]     # in nats (natural-log Shannon entropy)
+  # H_i < 0.4       -> "clean"      (~25.0% of examples)
+  # 0.4 <= H_i<0.7  -> "ambiguous"  (~50.6%)
+  # H_i >= 0.7      -> "contested"  (~24.4%)
+
+# --- Training (paper Section 3.3) ---
+training:
+  epochs: 5
+  batch_size: 32
+  learning_rate: 2.0e-5
+  weight_decay: 0.01
+  warmup_ratio: 0.06
+  max_grad_norm: 1.0
+  optimizer: "adamw"
+  scheduler: "cosine"        # cosine decay to 10% of peak LR
+  mixed_precision: "no"      # fp32 on MPS; fp16 optional on CUDA
+
+# --- Temporal tracking (paper Section 3.2, Eq. 2) ---
+tracking:
+  eval_every_n_steps: 100
+  eval_at_epoch_end: true
+  eval_at_step_zero: true
+  # yields T ~= 39 checkpoints over 5 epochs on the ChaosNLI sizes above
+
+# --- Seeds (paper Section 3.3) ---
+experiment:
+  seeds: [42, 123, 456]

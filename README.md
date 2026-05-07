@@ -27,8 +27,6 @@ pip install -r requirements.txt
 pip install -e .                  # exposes the `src` package
 ```
 
-Tested on macOS 14 + Apple M-series (MPS) and on CUDA 12. `HF_TOKEN` is only needed for gated HuggingFace models; none of the six models here are gated.
-
 ## Data
 
 SNLI and MNLI pull automatically through `datasets`. **ChaosNLI** must be downloaded manually:
